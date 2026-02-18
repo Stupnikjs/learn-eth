@@ -7,6 +7,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/p2p/discover/v4wire"
+	"github.com/ethereum/go-ethereum/rlp"
 )
 
 func main() {
@@ -40,7 +41,7 @@ func main() {
 		b := new(bytes.Buffer)
 		b.Write(headSpace)        // 97 empty bytes
 		b.WriteByte(req.Kind())
-		packet = b.Bytes()
+		packet = b.Bytes()								// 97
 		sig, err := crypto.Sign(crypto.Keccak256(packet[headSize:]), priv)
 
 		copy(packet[macSize:], sig)
@@ -73,7 +74,11 @@ func main() {
 		if err != nil {
 			continue
 		}
-
+		sender := v4wire.Endpoint{
+			IP:  remoteAddr.IP, // Ton IP (0.0.0.0 laisse la node détecter)
+			UDP: 30303,
+			TCP: 30303,
+		}
 		// 2. Utiliser v4wire pour décoder TOUTE l'enveloppe (Signature, Hash, Payload)
 		// packet: l'interface (Ping, Pong, etc.)
 		// pubkey: la clé publique de la node qui t'a répondu (Node ID)
@@ -89,10 +94,16 @@ func main() {
 		case *v4wire.Pong:
 			fmt.Printf("✅ PONG reçu de la node ID: %x\n", pubkey[:8])
 			fmt.Printf("   Correspond au Ping Hash: %x\n", p.ReplyTok)
-
-			// C'est le moment d'envoyer un FindNode !
-			// findNode := &v4wire.FindNode{Target: tonNodeID, Expiration: ...}
-
+			findNode := &v4wire.Findnode{
+				Target:     pubkey,
+				Expiration: uint64(time.Now().Second() + 10),
+				Rest:       []rlp.RawValue{},
+			}
+			packet, _, err := v4wire.Encode(privKey, findNode)
+			_, err = conn.WriteToUDP(packet, remoteAddr)
+			if err != nil {
+				fmt.Println(err)
+			}
 		case *v4wire.Neighbors:
 			fmt.Printf("🌐 REÇU %d NOUVEAUX VOISINS de %s\n", len(p.Nodes), remoteAddr)
 			for _, node := range p.Nodes {
@@ -103,13 +114,14 @@ func main() {
 
 		case *v4wire.Ping:
 			fmt.Printf("📥 Reçu PING de %s. On devrait lui répondre Pong !\n", remoteAddr)
-			pong := buildPong(hash, toEndpoint)
+
+			pong := buildPong(hash, sender)
 			packet, _, err := v4wire.Encode(privKey, pong)
 			if err != nil {
 				fmt.Printf("Paquet malformé reçu de %s: %v\n", remoteAddr, err)
 				continue
 			}
-			_, err = conn.WriteToUDP(packet, targetAddr)
+			_, err = conn.WriteToUDP(packet, remoteAddr)
 			if err != nil {
 				fmt.Println(err)
 			}
