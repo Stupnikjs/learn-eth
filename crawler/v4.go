@@ -18,6 +18,7 @@ var TARGETIP net.IP = net.ParseIP("18.138.108.67") // Bootnode Fondation
 func V4() {
 
 	privKey, _ := crypto.GenerateKey()
+
 	ping := PingSetup(privKey)
 	packet, hash, err := v4wire.Encode(privKey, ping)
 	if err != nil {
@@ -37,20 +38,23 @@ func V4() {
 		fmt.Println("Erreur réseau:", err)
 		return
 	}
-
+	var endpointChan chan v4wire.Endpoint = make(chan v4wire.Endpoint)
 	buffer := make([]byte, 1280)
 	for {
 		n, remoteAddr, err := conn.ReadFromUDP(buffer)
-		ProcessPacket(conn, buffer[:n], privKey, remoteAddr)
+		ProcessPacket(conn, buffer[:n], privKey, remoteAddr, endpointChan)
 
 		if err != nil {
 			fmt.Printf("Paquet malformé reçu de %s: %v\n", remoteAddr, err)
 			continue
 		}
-
+		for endp := range endpointChan {
+			fmt.Println(endp)
+		}
 		// 3. Identification du type de message via un Type Switch
 
 	}
+
 }
 
 func sendBackPong() {}
@@ -89,7 +93,7 @@ func PingSetup(privkey *ecdsa.PrivateKey) *v4wire.Ping {
 
 }
 
-func ProcessPacket(conn *net.UDPConn, buffer []byte, privkey *ecdsa.PrivateKey, remoteAddr *net.UDPAddr) {
+func ProcessPacket(conn *net.UDPConn, buffer []byte, privkey *ecdsa.PrivateKey, remoteAddr *net.UDPAddr, endpointChan chan v4wire.Endpoint) {
 	sender := v4wire.Endpoint{
 		IP:  remoteAddr.IP, // Ton IP (0.0.0.0 laisse la node détecter)
 		UDP: 30303,
@@ -113,6 +117,13 @@ func ProcessPacket(conn *net.UDPConn, buffer []byte, privkey *ecdsa.PrivateKey, 
 		for _, node := range p.Nodes {
 			fmt.Printf("   -> Node ID: %x | IP: %s | Port TCP: %d\n",
 				node.ID[:8], node.IP, node.TCP)
+			endpoint := v4wire.Endpoint{
+				IP:  node.IP,
+				TCP: node.TCP,
+				UDP: node.UDP,
+			}
+			endpointChan <- endpoint
+
 			// C'est ici que tu alimentes ta base de données de crawler !
 		}
 
