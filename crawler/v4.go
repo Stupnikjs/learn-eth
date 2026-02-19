@@ -13,48 +13,53 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 )
 
-var TARGETIP net.IP = net.ParseIP("18.138.108.67") // Bootnode Fondation
-
-func V4() {
-
+func V4(target net.IP) []net.IP {
+	var discovered []net.IP
+	// ... setup UDP ...
+	timeout := time.After(2 * time.Second)
 	privKey, _ := crypto.GenerateKey()
 
-	ping := PingSetup(privKey)
+	ping := PingSetup(target, privKey)
 	packet, hash, err := v4wire.Encode(privKey, ping)
 	if err != nil {
 		fmt.Println("Erreur d'encodage:", err)
-		return
+		return nil
 	}
 
 	fmt.Printf("Hash du Ping Initial (ReplyTok): %x\n", hash)
 
 	// 5. Envoi UDP
 	conn, _ := net.ListenUDP("udp", &net.UDPAddr{IP: net.IPv4zero, Port: 0})
-	targetAddr := &net.UDPAddr{IP: TARGETIP, Port: 30303}
+	targetAddr := &net.UDPAddr{IP: target, Port: 30303}
 
 	// envoie le paquet
 	_, err = conn.WriteToUDP(packet, targetAddr)
 	if err != nil {
 		fmt.Println("Erreur réseau:", err)
-		return
+		return nil
 	}
-	var endpointChan chan v4wire.Endpoint = make(chan v4wire.Endpoint)
+
 	buffer := make([]byte, 1280)
 	for {
-		n, remoteAddr, err := conn.ReadFromUDP(buffer)
-		ProcessPacket(conn, buffer[:n], privKey, remoteAddr, endpointChan)
+		select {
+		case <-timeout:
+			return discovered
+		default:
+			conn.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
+			n, remoteAddr, err := conn.ReadFromUDP(buffer)
+			if err != nil {
+				fmt.Println(err)
+			}
+			// Modifie ProcessPacket pour qu'il ajoute les IPs à 'discovered'
+			ips := ProcessPacket(conn, buffer[:n], privKey, remoteAddr, target)
+			discovered = append(discovered, ips...)
 
-		if err != nil {
-			fmt.Printf("Paquet malformé reçu de %s: %v\n", remoteAddr, err)
-			continue
+			// Si on a reçu les Neighbors, on a ce qu'on voulait, on peut partir
+			if len(ips) > 0 {
+				return discovered
+			}
 		}
-		for endp := range endpointChan {
-			fmt.Println(endp)
-		}
-		// 3. Identification du type de message via un Type Switch
-
 	}
-
 }
 
 func sendBackPong() {}
@@ -72,9 +77,9 @@ func buildPong(hash []byte, to v4wire.Endpoint, privkey *ecdsa.PrivateKey) *v4wi
 	}
 }
 
-func PingSetup(privkey *ecdsa.PrivateKey) *v4wire.Ping {
+func PingSetup(target net.IP, privkey *ecdsa.PrivateKey) *v4wire.Ping {
 	toEndpoint := v4wire.Endpoint{
-		IP:  TARGETIP,
+		IP:  target,
 		UDP: 30303,
 		TCP: 30303,
 	}
@@ -93,15 +98,15 @@ func PingSetup(privkey *ecdsa.PrivateKey) *v4wire.Ping {
 
 }
 
-func ProcessPacket(conn *net.UDPConn, buffer []byte, privkey *ecdsa.PrivateKey, remoteAddr *net.UDPAddr, endpointChan chan v4wire.Endpoint) {
+func ProcessPacket(conn *net.UDPConn, buffer []byte, privkey *ecdsa.PrivateKey, remoteAddr *net.UDPAddr, target net.IP) []net.IP {
 	sender := v4wire.Endpoint{
 		IP:  remoteAddr.IP, // Ton IP (0.0.0.0 laisse la node détecter)
 		UDP: 30303,
 		TCP: 30303,
 	}
-	if !remoteAddr.IP.Equal(TARGETIP) {
+	if !remoteAddr.IP.Equal(target) {
 		fmt.Println("process only response from target node")
-		return
+		return nil
 	}
 	packet, pubkey, hash, err := v4wire.Decode(buffer)
 	if err != nil {
@@ -114,18 +119,14 @@ func ProcessPacket(conn *net.UDPConn, buffer []byte, privkey *ecdsa.PrivateKey, 
 
 	case *v4wire.Neighbors:
 		fmt.Printf("🌐 REÇU %d NOUVEAUX VOISINS de %s\n", len(p.Nodes), remoteAddr)
+		ips := []net.IP{}
 		for _, node := range p.Nodes {
 			fmt.Printf("   -> Node ID: %x | IP: %s | Port TCP: %d\n",
 				node.ID[:8], node.IP, node.TCP)
-			endpoint := v4wire.Endpoint{
-				IP:  node.IP,
-				TCP: node.TCP,
-				UDP: node.UDP,
-			}
-			endpointChan <- endpoint
-
+			ips = append(ips, node.IP)
 			// C'est ici que tu alimentes ta base de données de crawler !
 		}
+		return ips
 
 	case *v4wire.Ping:
 		fmt.Printf("📥 Reçu PING de %s. On devrait lui répondre Pong !\n", remoteAddr)
@@ -152,6 +153,7 @@ func ProcessPacket(conn *net.UDPConn, buffer []byte, privkey *ecdsa.PrivateKey, 
 		}
 
 	}
+	return nil
 }
 
 func CreateMyENR(privKey *ecdsa.PrivateKey) *enr.Record {
