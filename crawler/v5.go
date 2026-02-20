@@ -13,6 +13,25 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
+/*
+La taille minimale (44 octets)
+Le protocole impose une taille minimale pour éviter les attaques par amplification UDP.
+
+Si ton paquet fait moins de 44 octets, le nœud distant l'ignorera totalement.
+
+En pratique, on envoie souvent un paquet d'environ 64 à 100 octets pour simuler un vrai message chiffré.
+
+2. Le Header statique (après démasquage)
+Le bootnode va essayer de démasquer ton paquet. Pour qu'il accepte de te répondre par un WHOAREYOU, le header démasqué doit contenir :
+
+Protocol ID : Les 6 octets fixes discv5.
+Version : Le chiffre 1.
+Flag : La valeur 0 (qui signifie "Ordinary Packet").
+AuthData : Ton Node ID (32 octets). C'est ainsi que le bootnode sait à qui il doit répondre.
+
+3. Le Masquage correct (La clé du destinataire)
+C'est le critère le plus important. Tu dois utiliser la Masking Key du bootnode (dérivée de sa PubKey dans l'enode) pour masquer ton header.
+*/
 func LowLevelHandshake(target net.IP, targetPort int, targetPubKeyHex string) {
 	// 1. Initialisation de ton identité
 	_, _, localMaskKey := BuildLocalSetting()
