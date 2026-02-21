@@ -44,3 +44,18 @@ func PubKeyToNodeID(pub *ecdsa.PublicKey) [32]byte {
 
 	return nodeID
 }
+
+func GetNodeID(privKey *ecdsa.PrivateKey) [32]byte {
+	// 1. Extraire la clé publique à partir de la clé privée
+	pubKey := privKey.Public().(*ecdsa.PublicKey)
+
+	// 2. Convertir la clé publique en format non compressé (64 octets)
+	// On ignore le premier octet (0x04) qui indique que c'est une clé non compressée
+	pubBytes := crypto.FromECDSAPub(pubKey)[1:]
+
+	// 3. Le Node ID est le hash Keccak-256 de ces 64 octets
+	var nodeID [32]byte
+	copy(nodeID[:], crypto.Keccak256(pubBytes))
+
+	return nodeID
+}

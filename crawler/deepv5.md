@@ -95,9 +95,9 @@ dans le premier contact on a ces call
 
 ```
 head, msgData, err = c.encodeRandom(id) 
-err := c.sc.maskingIVGen(head.IV[:])
-c.writeHeaders(&head)
-headerData := c.buf.Bytes()
+err := c.sc.maskingIVGen(head.IV[:])  // just crand.read
+c.writeHeaders(&head)  // write head.IV and head.AuthData to c.buf 
+headerData := c.buf.Bytes()  
 msgData, err = c.encryptMessage(session, packet, &head, headerData)
 enc, err := c.EncodeRaw(id, head, msgData)
 return enc, head.Nonce, err
