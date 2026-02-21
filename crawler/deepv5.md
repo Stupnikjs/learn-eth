@@ -89,6 +89,8 @@ func (c *Codec) Encode(id enode.ID, addr string, packet Packet, challenge *Whoar
 	return enc, head.Nonce, err
 }
 
+
+```
 dans le premier contact on a ces call 
 
 ```
@@ -100,4 +102,5 @@ msgData, err = c.encryptMessage(session, packet, &head, headerData)
 enc, err := c.EncodeRaw(id, head, msgData)
 return enc, head.Nonce, err
 ```
+
 enc c'est le paquet encodé 
