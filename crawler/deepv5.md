@@ -94,7 +94,7 @@ func (c *Codec) Encode(id enode.ID, addr string, packet Packet, challenge *Whoar
 dans le premier contact on a ces call 
 
 ```
-head, msgData, err = c.encodeRandom(id)
+head, msgData, err = c.encodeRandom(id) 
 err := c.sc.maskingIVGen(head.IV[:])
 c.writeHeaders(&head)
 headerData := c.buf.Bytes()
@@ -104,3 +104,40 @@ return enc, head.Nonce, err
 ```
 
 enc c'est le paquet encodé 
+
+
+
+```
+// encodeRandom encodes a packet with random content.
+func (c *Codec) encodeRandom(toID enode.ID) (Header, []byte, error) {
+	head := c.makeHeader(toID, flagMessage, 0)    // 
+
+	// Encode auth data.
+	auth := messageAuthData{SrcID: c.localnode.ID()}
+	if _, err := crand.Read(head.Nonce[:]); err != nil {       
+		return head, nil, fmt.Errorf("can't get random data: %v", err)
+	}
+	c.headbuf.Reset()
+	binary.Write(&c.headbuf, binary.BigEndian, auth)
+	head.AuthData = c.headbuf.Bytes()
+
+	// Fill message ciphertext buffer with random bytes.
+	c.msgctbuf = append(c.msgctbuf[:0], make([]byte, randomPacketMsgSize)...)
+	crand.Read(c.msgctbuf)
+	return head, c.msgctbuf, nil
+}
+```
+
+
+```
+// func makeHeader()
+return Header{
+		StaticHeader: StaticHeader{
+			ProtocolID: c.protocolID,      // discv5
+			Version:    version,     	   // uint16 1
+			Flag:       flag,              // byte   iota
+			AuthSize:   uint16(authsize),  // 0
+		},
+	}
+
+```

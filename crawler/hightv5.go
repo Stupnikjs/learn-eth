@@ -51,6 +51,7 @@ func HighV5() {
 	// 6. Encodage avec le Codec officiel
 	// Encode s'occupe du Tag (XOR), du Masquage et de l'IV automatiquement
 	encoded, nonce, err := codec.Encode(node.ID(), node.IP().String(), packet, nil)
+
 	if err != nil {
 		log.Fatalf("Erreur Encodage: %v", err)
 	}
