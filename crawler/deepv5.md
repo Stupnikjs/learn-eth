@@ -23,7 +23,6 @@ Init codec
 
 
 
-
 Encoding func 
 ```
 func (c *Codec) Encode(id enode.ID, addr string, packet Packet, challenge *Whoareyou) ([]byte, Nonce, error) {
@@ -90,10 +89,15 @@ func (c *Codec) Encode(id enode.ID, addr string, packet Packet, challenge *Whoar
 	return enc, head.Nonce, err
 }
 
+dans le premier contact on a ces call 
+
 ```
-
-
-```
-
 head, msgData, err = c.encodeRandom(id)
-
+err := c.sc.maskingIVGen(head.IV[:])
+c.writeHeaders(&head)
+headerData := c.buf.Bytes()
+msgData, err = c.encryptMessage(session, packet, &head, headerData)
+enc, err := c.EncodeRaw(id, head, msgData)
+return enc, head.Nonce, err
+```
+enc c'est le paquet encodé 
