@@ -10,5 +10,6 @@ require (
 	github.com/golang/snappy v1.0.0 // indirect
 	github.com/holiman/uint256 v1.3.2 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7 // indirect
+	golang.org/x/crypto v0.44.0 // indirect
 	golang.org/x/sys v0.39.0 // indirect
 )
