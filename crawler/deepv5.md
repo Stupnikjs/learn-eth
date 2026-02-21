@@ -1,6 +1,6 @@
 # DEEP DIVE IN v5 
 
-## Codec encoding entity
+## CODEC 
 
 Init codec 
 ```
