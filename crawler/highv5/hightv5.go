@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/rand"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"time"
@@ -11,6 +12,8 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/p2p/discover/v5wire"
 	"github.com/ethereum/go-ethereum/p2p/enode"
+	"github.com/ethereum/go-ethereum/p2p/enr"
+	"github.com/ethereum/go-ethereum/rlp"
 )
 
 func HighV5() {
@@ -43,6 +46,23 @@ func HighV5() {
 
 	// 8. Boucle de lecture pour capturer le WHOAREYOU
 	buf := make([]byte, 1280)
+	enrRecords := make(chan *enr.Record)
+
+	go func() {
+		// some db or cache storage
+		// A simple cache to avoid printing the same node twice
+
+		for n := range enrRecords {
+			var buf io.Reader
+			s := rlp.NewListStream(buf, 1000)
+			n.DecodeRLP(s)
+			b :=
+				fmt.Println(n.Size())
+
+		}
+		// The sequence number is always at index 1
+
+	}()
 
 	for {
 
@@ -78,6 +98,7 @@ func HighV5() {
 			for i, enr := range p.Nodes {
 				// On décode l'ENR pour voir l'IP/Port des voisins
 				fmt.Printf("  [%d]| ENR Seq: %d\n", i, enr.Seq())
+				enrRecords <- enr
 			}
 		default:
 			fmt.Println(p.Name())
