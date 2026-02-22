@@ -21,13 +21,6 @@ We break down the complex layers of the Ethereum stack, focusing on the Go imple
 ## 🛠 Why Geth?
 Go-Ethereum is the "gold standard" implementation of the Ethereum execution layer. By studying Geth, you are learning the production-grade patterns that secure billions of dollars in assets. Understanding this codebase is the fastest way to transition from a Web3 user to a Protocol Engineer.
 
-## 📂 Repository Structure
-* `/docs`: Conceptual breakdowns of Ethereum Improvement Proposals (EIPs).
-* `/code-walkthroughs`: Annotated snippets of the Geth source code.
-* `/diagrams`: Visual flows of data through a Geth node.
-* `/exercises`: Small tasks to help you navigate and modify a local Geth build.
-
----
 
 ## 🚀 How to Use This Repo
 1.  **Start with the Docs:** Read through our conceptual overviews to get the "Why."
