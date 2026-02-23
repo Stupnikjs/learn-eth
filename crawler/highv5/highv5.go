@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/rand"
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"time"
@@ -13,7 +12,6 @@ import (
 	"github.com/ethereum/go-ethereum/p2p/discover/v5wire"
 	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/ethereum/go-ethereum/p2p/enr"
-	"github.com/ethereum/go-ethereum/rlp"
 )
 
 func HighV5() {
@@ -53,10 +51,10 @@ func HighV5() {
 		// A simple cache to avoid printing the same node twice
 
 		for n := range enrRecords {
-			var buf io.Reader
-			s := rlp.NewListStream(buf, 1000)
-			n.DecodeRLP(s)
-			fmt.Println(n.Size())
+			var ip net.IP
+			if err := n.Load(); err == nil {
+				println("IP:", ip.String())
+			}
 
 		}
 		// The sequence number is always at index 1
