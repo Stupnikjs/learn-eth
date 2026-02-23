@@ -56,8 +56,7 @@ func HighV5() {
 			var buf io.Reader
 			s := rlp.NewListStream(buf, 1000)
 			n.DecodeRLP(s)
-			b :=
-				fmt.Println(n.Size())
+			fmt.Println(n.Size())
 
 		}
 		// The sequence number is always at index 1
