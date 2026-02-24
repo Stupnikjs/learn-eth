@@ -20,7 +20,7 @@ func HighV5() {
 	db, _ := enode.OpenDB("")
 	localNode := enode.NewLocalNode(db, privKey)
 
-	node := enode.MustParse(MainnetBootnodes[0])
+	node := enode.MustParse(MainnetBootnodes[2])
 
 	// 3. Initialisation du Codec (Gère le masquage, le RLP et les IV)
 	// On passe 'nil' pour le protocole ID car il utilisera par défaut "discv5"
@@ -51,10 +51,9 @@ func HighV5() {
 		// A simple cache to avoid printing the same node twice
 
 		for n := range enrRecords {
-			var ip net.IP
-			if err := n.Load(); err == nil {
-				println("IP:", ip.String())
-			}
+
+			enrData := ExtractENRData(n)
+			fmt.Println(enrData)
 
 		}
 		// The sequence number is always at index 1
